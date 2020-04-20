@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="space.spulsar.pbridge">
+
+    <application>
+        <service android:name="space.spulsar.pbridge.ServerService" android:enabled="true"/>
+    </application>
+</manifest>
