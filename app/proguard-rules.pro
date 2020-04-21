@@ -19,3 +19,22 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+-keepattributes Exceptions
+
+-keep class space.spulsar.pbridge.BridgeManager {
+    public *;
+}
+
+-keep class space.spulsar.pbridge.ServerService {
+    public *;
+}
+
+-keep class space.spulsar.pbridge.aidl.IResult {*;}
+
+-keep interface space.spulsar.pbridge.IFetchListener {*;}
+-keep interface space.spulsar.pbridge.IResultCallback {*;}
+
+-keep class space.spulsar.pbridge.ContentType {
+    public *;
+}

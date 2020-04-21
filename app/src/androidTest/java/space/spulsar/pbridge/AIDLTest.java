@@ -14,10 +14,17 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+
+import space.spulsar.pbridge.aidl.IResult;
+import space.spulsar.pbridge.aidl.ISendListener;
+import space.spulsar.pbridge.aidl.IServerInterface;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author: SunYuxing
@@ -53,31 +60,31 @@ public class AIDLTest {
     @Test
     public void ping() throws TimeoutException, RemoteException {
         IServerInterface service = connectService();
-        AidlResult aidlResult = service.sendSync(ContentType.COMMAND, "ping");
-        assertNotNull(aidlResult);
-        assertEquals("success", aidlResult.contentBody);
+        IResult result = service.sendSync(ContentType.COMMAND, "ping");
+        assertNotNull(result);
+        assertEquals("success", result.contentBody);
     }
 
     @Test
-    public void callback() throws TimeoutException, RemoteException, NotClientException {
-        final int code = 123;
+    public void callback() throws TimeoutException, RemoteException, NotClientException, InterruptedException {
         IServerInterface service = connectService();
-        service.registerClient(new IClientInterface.Stub() {
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
+        service.send(ContentType.COMMAND, "ping", new ISendListener.Stub() {
             @Override
-            public void send() throws RemoteException {
-
-            }
-
-            @Override
-            public AidlResult sendSync(String contentType, String contentBody) throws RemoteException {
-                AidlResult aidlResult = new AidlResult();
-                aidlResult.code = code;
-                return aidlResult;
+            public void onComplete(String contentType, String contentBody) throws RemoteException {
+                countDownLatch.countDown();
             }
         });
 
-        AidlResult aidlResult = ServerService.getInstance().sendCommand(ContentType.COMMAND, "ping");
-        assertEquals(code, aidlResult.code);
+        boolean await = countDownLatch.await(10, TimeUnit.MILLISECONDS);
+        assertTrue(await);
+    }
+
+    @Test
+    public void sendSync() throws TimeoutException, RemoteException {
+        IServerInterface service = connectService();
+        IResult result = service.sendSync(ContentType.COMMAND, "ping");
+        assertNotNull(result);
     }
 
     private IServerInterface connectService() throws TimeoutException {

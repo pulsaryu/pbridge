@@ -15,11 +15,17 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
+    libraryVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "pbridge-${variant.name}"
+            outputFileName += "-${defaultConfig.versionName}.aar"
+        }
+    }
 }
 
 dependencies {

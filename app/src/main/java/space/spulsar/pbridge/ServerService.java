@@ -6,6 +6,10 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.util.Log;
 
+import space.spulsar.pbridge.aidl.IResult;
+import space.spulsar.pbridge.aidl.ISendListener;
+import space.spulsar.pbridge.aidl.IServerInterface;
+
 /**
  * @author: SunYuxing
  * @date: 2020/4/20
@@ -15,7 +19,6 @@ public class ServerService extends Service {
     private static final String TAG = "ServerService";
     private static ServerService sInstance;
     private IServerInterface.Stub server;
-    private IClientInterface mClient;
 
     public static ServerService getInstance() {
         return sInstance;
@@ -25,7 +28,9 @@ public class ServerService extends Service {
     public void onCreate() {
         super.onCreate();
         sInstance = this;
-        Log.d(TAG, "onCreate: ");
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onCreate: ");
+        }
     }
 
     @Override
@@ -33,44 +38,65 @@ public class ServerService extends Service {
         server = new IServerInterface.Stub() {
 
             @Override
-            public void registerClient(IClientInterface client) throws RemoteException {
-                mClient = client;
-            }
+            public void send(String contentType, String contentBody, final ISendListener listener) throws RemoteException {
+                IFetchListener fetchListener = BridgeManager.getInstance().getFetchListener();
+                if (fetchListener != null) {
+                    fetchListener.fetch(contentType, contentBody, new IResultCallback() {
+                        @Override
+                        public void onSuccess(String contentType, String contentBody) {
+                            if (listener != null) {
+                                try {
+                                    listener.onComplete(contentType, contentBody);
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
 
-            @Override
-            public void send() throws RemoteException {
-
-            }
-
-            @Override
-            public AidlResult sendSync(String contentType, String contentBody) throws RemoteException {
-                switch (contentType) {
-                    case ContentType.COMMAND:
-                        return handleCommand(contentBody);
+                        @Override
+                        public void onFailure(Exception e) {
+                            if (listener != null) {
+                                try {
+                                    listener.onComplete(ContentType.ERROR, e.getMessage());
+                                } catch (Exception ex) {
+                                    ex.printStackTrace();
+                                }
+                            }
+                        }
+                    });
+                } else {
+                    if (listener != null) {
+                        listener.onComplete(ContentType.ERROR, "[empty]");
+                    }
                 }
+            }
 
-                return null;
+            @Override
+            public IResult sendSync(String contentType, String contentBody) throws RemoteException {
+                IFetchListener fetchListener = BridgeManager.getInstance().getFetchListener();
+                if (fetchListener != null) {
+                    return fetchListener.fetchSync(contentType, contentBody);
+                } else {
+                    IResult result = new IResult();
+                    result.cotentType = ContentType.ERROR;
+                    result.contentBody = "[empty]";
+                    return result;
+                }
             }
         };
         return server;
-    }
-
-    public AidlResult sendCommand(String command, String content) throws RemoteException, NotClientException {
-        if (mClient != null) {
-            return mClient.sendSync(ContentType.COMMAND, content);
-        } else {
-            throw new NotClientException();
-        }
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         sInstance = null;
-        Log.d(TAG, "onDestroy: ");
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, "onDestroy: ");
+        }
     }
 
-    private AidlResult handleCommand(String command) {
+    private IResult handleCommand(String command) {
         if ("ping".equals(command)) {
             return ping();
         }
@@ -78,11 +104,10 @@ public class ServerService extends Service {
         return null;
     }
 
-    private AidlResult ping() {
-        AidlResult aidlResult = new AidlResult();
-        aidlResult.code = 0;
-        aidlResult.cotentType = ContentType.STRING;
-        aidlResult.contentBody = "success";
-        return aidlResult;
+    private IResult ping() {
+        IResult result = new IResult();
+        result.cotentType = ContentType.STRING;
+        result.contentBody = "success";
+        return result;
     }
 }

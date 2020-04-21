@@ -1,10 +1,9 @@
 // AidlResult.aidl
-package space.spulsar.pbridge;
+package space.spulsar.pbridge.aidl;
 
 // Declare any non-default types here with import statements
 
-parcelable AidlResult {
-    int code;
+parcelable IResult {
     String cotentType;
     String contentBody;
 }
