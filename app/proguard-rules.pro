@@ -34,6 +34,7 @@
 
 -keep interface space.spulsar.pbridge.IFetchListener {*;}
 -keep interface space.spulsar.pbridge.IResultCallback {*;}
+-keep interface space.spulsar.pbridge.IBridgeConnection {*;}
 
 -keep class space.spulsar.pbridge.ContentType {
     public *;
