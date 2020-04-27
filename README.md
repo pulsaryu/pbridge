@@ -6,14 +6,14 @@ Make app send and fetch message easier.
 
 Via gradle:
 
-```
+```groovy
 implementation 'space.spulsar:pbridge:1.0'
 ```
 
 ## Use
 
 Fist connect target app, example the target app package name is "com.example.a", so we can do like this:
-```
+```java
 BridgeManager.getInstance().connect(context, "com.example.a", new IBridgeConnection() {
     @Override
     public void onServiceConnected() {
@@ -28,7 +28,7 @@ BridgeManager.getInstance().connect(context, "com.example.a", new IBridgeConnect
 ```
 
 Set fetch listener, when the targe app send message to your app, you can receive like this:
-```
+```java
 BridgeManager.getInstance().setFetchListener(new IFetchListener() {
     @Override
     public void fetch(String contentType, String contentBody, IResultCallback iResultCallback) {
