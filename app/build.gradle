@@ -1,4 +1,17 @@
 apply plugin: 'com.android.library'
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
+
+
+def properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+ext["project.name"] = 'pbridge'
+ext['ossrhUsername'] = properties.getProperty("sonatype.ossrhUsername")
+ext['ossrhPassword'] = properties.getProperty("sonatype.ossrhPassword")
+ext["signing.keyId"] = properties.getProperty("signing.keyId")
+ext["signing.password"] = properties.getProperty("signing.password")
+ext["signing.secretKeyRingFile"] = properties.getProperty("signing.secretKeyRingFile")
 
 android {
     compileSdkVersion 29
@@ -8,7 +21,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 29
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -22,8 +35,12 @@ android {
 
     libraryVariants.all { variant ->
         variant.outputs.all {
+            def versionNameSuffix = variant.buildType.versionNameSuffix
+            if (versionNameSuffix == null) {
+                versionNameSuffix = ""
+            }
             outputFileName = "pbridge-${variant.name}"
-            outputFileName += "-${defaultConfig.versionName}.aar"
+            outputFileName += "-${defaultConfig.versionName}${versionNameSuffix}.aar"
         }
     }
 }
@@ -35,4 +52,74 @@ dependencies {
     androidTestImplementation 'androidx.test:rules:1.2.0'
     androidTestImplementation 'androidx.test.ext:junit:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.2.0'
+}
+
+// Because the components are created only during the afterEvaluate phase, you must
+// configure your publications using the afterEvaluate() lifecycle method.
+afterEvaluate {
+    publishing {
+        publications {
+            // Creates a Maven publication called "release".
+            release(MavenPublication) {
+                // Applies the component for the release build variant.
+                from components.release
+
+                // You can then customize attributes of the publication as shown below.
+                groupId = 'space.spulsar'
+                artifactId = project.ext.get('project.name')
+                version = android.defaultConfig.versionName
+
+                pom {
+                    name = project.ext.get('project.name')
+                    description = 'A bridge to make AIDL easy.'
+                    url = 'https://github.com/pulsaryu/pbridge'
+                    scm {
+                        connection = 'scm:git:git@github.com:pulsaryu/pbridge.git'
+                        developerConnection = 'scm:git:git@github.com:pulsaryu/pbridge.git'
+                        url = 'https://github.com/pulsaryu/pbridge'
+                    }
+                    licenses {
+                        license {
+                            name = 'The Apache License, Version 2.0'
+                            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        }
+                    }
+                    developers {
+                        developer {
+                            name = 'Yuxing Sun'
+                            email = 'yuxinghappy@gmail.com'
+                        }
+                    }
+                }
+            }
+        }
+
+        repositories {
+            maven {
+                // This is an arbitrary name, you may also use "mavencentral" or
+                // any other name that's descriptive for you
+                name = "sonatype"
+
+                def releasesRepoUrl = "https://oss.sonatype.org/service/local/staging/deploy/maven2/"
+                def snapshotsRepoUrl = "https://oss.sonatype.org/content/repositories/snapshots/"
+                // You only need this if you want to publish snapshots, otherwise just set the URL
+                // to the release repo directly
+                url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+
+                // The username and password we've fetched earlier
+                credentials {
+                    username ossrhUsername
+                    password ossrhPassword
+                }
+            }
+//            maven {
+//                url = "$buildDir/maven"
+//            }
+        }
+
+    }
+}
+
+signing {
+    sign publishing.publications
 }
